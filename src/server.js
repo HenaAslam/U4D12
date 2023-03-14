@@ -9,7 +9,7 @@ import {
 import blogsRouter from "./api/blogs/index.js";
 const server = express();
 const port = process.env.PORT;
-const whitelist = [process.env.FE_DEV_URL];
+const whitelist = [process.env.FE_DEV_URL, process.env.FE_PROD_URL];
 server.use(
   cors({
     origin: (currentOrigin, corsNext) => {
