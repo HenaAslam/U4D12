@@ -2,11 +2,11 @@
   "name": "u4d12",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon -r dotenv/config -e js ./src/server.js"
+    "dev": "nodemon -r dotenv/config -e js ./src/server.js",
+    "start": "node ./src/server.js"
   },
   "repository": {
     "type": "git",
