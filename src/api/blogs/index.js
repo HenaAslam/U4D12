@@ -7,7 +7,7 @@ import multer from "multer";
 import { checkBlogSchema, triggerBadRequest } from "./validator.js";
 import q2m from "query-to-mongo";
 import authorsModel from "../authors/model.js";
-import likesModel from "./likesModel.js";
+
 import Mongoose from "mongoose";
 import { ObjectId } from "mongoose";
 const blogsRouter = express.Router();
@@ -42,6 +42,10 @@ blogsRouter.get("/", async (req, res, next) => {
       .populate({
         path: "author",
         select: "name ",
+      })
+      .populate({
+        path: "likes",
+        select: "name ",
       });
 
     const total = await BlogsModel.countDocuments(mongoQuery.criteria);
@@ -59,10 +63,16 @@ blogsRouter.get("/", async (req, res, next) => {
 
 blogsRouter.get("/:blogId", async (req, res, next) => {
   try {
-    const blog = await BlogsModel.findById(req.params.blogId).populate({
-      path: "author",
-      select: "name surname email",
-    });
+    const blog = await BlogsModel.findById(req.params.blogId)
+      .populate({
+        path: "author",
+        select: "name surname email",
+      })
+      .populate({
+        path: "likes",
+        select: "name surname email",
+      });
+
     if (blog) {
       res.send(blog);
     } else {
