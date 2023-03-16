@@ -7,6 +7,7 @@ import {
   genericErrorHandler,
 } from "./errorHandlers.js";
 import blogsRouter from "./api/blogs/index.js";
+import authorsRouter from "./api/authors/index.js";
 const server = express();
 const port = process.env.PORT;
 const whitelist = [process.env.FE_DEV_URL, process.env.FE_PROD_URL];
@@ -28,6 +29,7 @@ server.use(
 );
 server.use(express.json());
 server.use("/blogs", blogsRouter);
+server.use("/authors", authorsRouter);
 server.use(badRequestHandler);
 server.use(notFoundHandler);
 server.use(genericErrorHandler);

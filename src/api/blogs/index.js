@@ -6,13 +6,16 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 import { checkBlogSchema, triggerBadRequest } from "./validator.js";
 import q2m from "query-to-mongo";
-
+import authorsModel from "../authors/model.js";
+import likesModel from "./likesModel.js";
+import Mongoose from "mongoose";
+import { ObjectId } from "mongoose";
 const blogsRouter = express.Router();
 
 blogsRouter.post(
   "/",
-  checkBlogSchema,
-  triggerBadRequest,
+  // checkBlogSchema,
+  // triggerBadRequest,
   async (req, res, next) => {
     try {
       const newBlog = new BlogsModel(req.body);
@@ -28,14 +31,18 @@ blogsRouter.post(
 blogsRouter.get("/", async (req, res, next) => {
   try {
     const mongoQuery = q2m(req.query);
-    console.log(mongoQuery);
+    // console.log(mongoQuery);
     const blogs = await BlogsModel.find(
       mongoQuery.criteria,
       mongoQuery.options.fields
     )
       .limit(mongoQuery.options.limit)
       .skip(mongoQuery.options.skip)
-      .sort(mongoQuery.options.sort);
+      .sort(mongoQuery.options.sort)
+      .populate({
+        path: "author",
+        select: "name ",
+      });
 
     const total = await BlogsModel.countDocuments(mongoQuery.criteria);
 
@@ -52,7 +59,10 @@ blogsRouter.get("/", async (req, res, next) => {
 
 blogsRouter.get("/:blogId", async (req, res, next) => {
   try {
-    const blog = await BlogsModel.findById(req.params.blogId);
+    const blog = await BlogsModel.findById(req.params.blogId).populate({
+      path: "author",
+      select: "name surname email",
+    });
     if (blog) {
       res.send(blog);
     } else {
@@ -234,6 +244,44 @@ blogsRouter.put("/:blogId/comments/:commentId", async (req, res, next) => {
       }
     } else {
       next(createHttpError(404, `Blog with id ${req.params.blogId} not found`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+blogsRouter.post("/:blogId/likes", async (req, res, next) => {
+  try {
+    const { authorId } = req.body;
+
+    const blog = await BlogsModel.findById(req.params.blogId);
+    if (!blog)
+      return next(
+        createHttpError(404, `blog with id ${req.params.blogId} not found!`)
+      );
+
+    const likedAuthor = await authorsModel.findById(authorId);
+    if (!likedAuthor)
+      return next(
+        createHttpError(404, `author with id ${authorId} not found!`)
+      );
+
+    if (blog.likes.includes(authorId)) {
+      const updatedBlog = await BlogsModel.findByIdAndUpdate(
+        { _id: req.params.blogId },
+        { $pull: { likes: authorId } },
+        { new: true, runValidators: true }
+      );
+      res.send(updatedBlog);
+    } else {
+      const updatedBlog = await BlogsModel.findOneAndUpdate(
+        { _id: req.params.blogId },
+        { $push: { likes: authorId } },
+        { new: true, runValidators: true, upsert: true }
+      );
+
+      // console.log(updatedBlog);
+      res.send(updatedBlog);
     }
   } catch (error) {
     next(error);

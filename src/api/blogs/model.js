@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
+const commentSchema = new Schema({
+  comment: { type: String, required: true },
+  rate: { type: Number, required: true, min: 1, max: 5 },
+  author: { type: String },
+  createdAt: { type: Date },
+  updatedAt: { type: Date },
+});
 
 const blogsSchema = new Schema(
   {
@@ -11,19 +18,10 @@ const blogsSchema = new Schema(
       value: { type: Number, required: true },
       unit: { type: String, required: true },
     },
-    author: {
-      name: { type: String, required: true },
-      avatar: { type: String },
-    },
+    author: { type: Schema.Types.ObjectId, ref: "Author" },
     content: { type: String, required: true },
-    comments: [
-      {
-        comment: { type: String, required: true },
-        rate: { type: Number, required: true, min: 1, max: 5 },
-        createdAt: { type: Date },
-        updatedAt: { type: Date },
-      },
-    ],
+    comments: [commentSchema],
+    likes: [{ type: Schema.Types.ObjectId, ref: "Author" }],
   },
   {
     timestamps: true,
