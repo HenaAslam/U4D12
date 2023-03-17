@@ -282,7 +282,7 @@ blogsRouter.post("/:blogId/likes", async (req, res, next) => {
         { $pull: { likes: authorId } },
         { new: true, runValidators: true }
       );
-      res.send(updatedBlog);
+      res.send({ blog: updatedBlog, numberOflikes: updatedBlog.likes.length });
     } else {
       const updatedBlog = await BlogsModel.findOneAndUpdate(
         { _id: req.params.blogId },
@@ -291,8 +291,21 @@ blogsRouter.post("/:blogId/likes", async (req, res, next) => {
       );
 
       // console.log(updatedBlog);
-      res.send(updatedBlog);
+      res.send({ blog: updatedBlog, numberOflikes: updatedBlog.likes.length });
     }
+  } catch (error) {
+    next(error);
+  }
+});
+blogsRouter.get("/:blogId/likes", async (req, res, next) => {
+  try {
+    const blog = await BlogsModel.findById(req.params.blogId);
+    if (!blog)
+      return next(
+        createHttpError(404, `blog with id ${req.params.blogId} not found!`)
+      );
+
+    res.send({ likes: blog.likes, numberOflikes: blog.likes.length });
   } catch (error) {
     next(error);
   }
