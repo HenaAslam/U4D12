@@ -10,6 +10,7 @@ import authorsModel from "../authors/model.js";
 
 import Mongoose from "mongoose";
 import { ObjectId } from "mongoose";
+import { basicAuthMiddleware } from "../../lib/auth/basic.js";
 const blogsRouter = express.Router();
 
 blogsRouter.post(
@@ -60,6 +61,45 @@ blogsRouter.get("/", async (req, res, next) => {
     next(error);
   }
 });
+blogsRouter.put(
+  "/myBlog/:blogId",
+  basicAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const blog = await BlogsModel.findById(req.params.blogId);
+      if (blog.author.includes(req.user._id)) {
+        const updatedBlog = await BlogsModel.findByIdAndUpdate(
+          blog._id,
+          req.body,
+          { new: true, runValidators: true }
+        );
+        res.send(updatedBlog);
+      } else {
+        next(createHttpError(403, "owner only endpoint!"));
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+blogsRouter.delete(
+  "/myBlog/:blogId",
+  basicAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const blog = await BlogsModel.findById(req.params.blogId);
+      if (blog.author.includes(req.user._id)) {
+        await BlogsModel.findOneAndDelete(req.params.blogId);
+        res.status(204).send();
+      } else {
+        next(createHttpError(403, "owner only endpoint!"));
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 blogsRouter.get("/:blogId", async (req, res, next) => {
   try {

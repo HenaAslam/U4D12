@@ -20,14 +20,19 @@ authorsRouter.post(
     }
   }
 );
-authorsRouter.get("/", basicAuthMiddleware, async (req, res, next) => {
-  try {
-    const authors = await authorsModel.find();
-    res.send(authors);
-  } catch (error) {
-    next(error);
+authorsRouter.get(
+  "/",
+  basicAuthMiddleware,
+  adminOnlyMiddleware,
+  async (req, res, next) => {
+    try {
+      const authors = await authorsModel.find();
+      res.send(authors);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 authorsRouter.get("/me", basicAuthMiddleware, async (req, res, next) => {
   try {
     res.send(req.user);
@@ -93,6 +98,7 @@ authorsRouter.delete(
   adminOnlyMiddleware,
   async (req, res, next) => {
     try {
+      // if (req.user._id.toString() === req.params.authorId) {
       const deletedAuthor = await authorsModel.findByIdAndDelete(
         req.params.authorId
       );
@@ -106,6 +112,9 @@ authorsRouter.delete(
           )
         );
       }
+      // } else {
+      //   next(createHttpError(403, "owner only endpoint!"));
+      // }
     } catch (error) {
       next(error);
     }
@@ -115,8 +124,10 @@ authorsRouter.put(
   "/:authorId",
   basicAuthMiddleware,
   adminOnlyMiddleware,
+
   async (req, res, next) => {
     try {
+      // if (req.user._id.toString() === req.params.authorId) {
       const updatedAuthor = await authorsModel.findByIdAndUpdate(
         req.params.authorId,
         req.body,
@@ -134,6 +145,9 @@ authorsRouter.put(
           )
         );
       }
+      // } else {
+      //   next(createHttpError(403, "owner only endpoint!"));
+      // }
     } catch (error) {
       next(error);
     }
