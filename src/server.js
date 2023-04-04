@@ -5,6 +5,8 @@ import {
   badRequestHandler,
   notFoundHandler,
   genericErrorHandler,
+  unauthorizedErrorHandler,
+  forbiddenErrorHandler,
 } from "./errorHandlers.js";
 import blogsRouter from "./api/blogs/index.js";
 import authorsRouter from "./api/authors/index.js";
@@ -30,9 +32,11 @@ server.use(
 server.use(express.json());
 server.use("/blogs", blogsRouter);
 server.use("/authors", authorsRouter);
-server.use(badRequestHandler);
-server.use(notFoundHandler);
-server.use(genericErrorHandler);
+server.use(badRequestHandler); //400
+server.use(unauthorizedErrorHandler); //401
+server.use(forbiddenErrorHandler); //403
+server.use(notFoundHandler); //404
+server.use(genericErrorHandler); //500
 mongoose.connect(process.env.mongoURL);
 
 mongoose.connection.on("connected", () => {
