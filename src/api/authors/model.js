@@ -17,6 +17,7 @@ const authorSchema = new Schema(
       enum: ["Admin", "User"],
       default: "User",
     },
+    refreshToken: { type: String },
   },
   {
     timestamps: true,
@@ -42,6 +43,7 @@ authorSchema.methods.toJSON = function () {
   delete currentAuthor.createdAt;
   delete currentAuthor.updatedAt;
   delete currentAuthor.__v;
+  delete currentAuthor.refreshToken;
   return currentAuthor;
 };
 
