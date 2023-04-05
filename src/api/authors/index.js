@@ -4,6 +4,8 @@ import authorsModel from "./model.js";
 import { basicAuthMiddleware } from "../../lib/auth/basic.js";
 import BlogsModel from "../blogs/model.js";
 import { adminOnlyMiddleware } from "../../lib/auth/admin.js";
+import { createAccessToken } from "../../lib/auth/tools.js";
+import { JWTAuthMiddleware } from "../../lib/auth/jwt.js";
 
 const authorsRouter = express.Router();
 
@@ -22,7 +24,8 @@ authorsRouter.post(
 );
 authorsRouter.get(
   "/",
-  basicAuthMiddleware,
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
   adminOnlyMiddleware,
   async (req, res, next) => {
     try {
@@ -33,35 +36,52 @@ authorsRouter.get(
     }
   }
 );
-authorsRouter.get("/me", basicAuthMiddleware, async (req, res, next) => {
-  try {
-    res.send(req.user);
-  } catch (error) {
-    next(error);
-  }
-});
 
-authorsRouter.put("/me", basicAuthMiddleware, async (req, res, next) => {
-  try {
-    const updatedAuthor = await authorsModel.findByIdAndUpdate(
-      req.user._id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    res.send(updatedAuthor);
-  } catch (error) {
-    next(error);
+authorsRouter.get(
+  "/me",
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const author = await authorsModel.findById(req.user._id);
+      res.send(author);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-authorsRouter.delete("/me", basicAuthMiddleware, async (req, res, next) => {
-  try {
-    await authorsModel.findOneAndDelete(req.user._id);
-    res.status(204).send();
-  } catch (error) {
-    next(error);
+authorsRouter.put(
+  "/me",
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const updatedAuthor = await authorsModel.findByIdAndUpdate(
+        req.user._id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      res.send(updatedAuthor);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
+
+authorsRouter.delete(
+  "/me",
+  //  basicAuthMiddleware,
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      await authorsModel.findOneAndDelete(req.user._id);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 authorsRouter.get(
   "/me/stories",
   basicAuthMiddleware,
@@ -78,23 +98,33 @@ authorsRouter.get(
     }
   }
 );
-authorsRouter.get("/:authorId", basicAuthMiddleware, async (req, res, next) => {
-  try {
-    const author = await authorsModel.findById(req.params.authorId);
-    if (author) {
-      res.send(author);
-    } else {
-      next(
-        createHttpError(404, `author with id ${req.params.authorId} not found`)
-      );
+authorsRouter.get(
+  "/:authorId",
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
+
+  async (req, res, next) => {
+    try {
+      const author = await authorsModel.findById(req.params.authorId);
+      if (author) {
+        res.send(author);
+      } else {
+        next(
+          createHttpError(
+            404,
+            `author with id ${req.params.authorId} not found`
+          )
+        );
+      }
+    } catch (error) {
+      next(error);
     }
-  } catch (error) {
-    next(error);
   }
-});
+);
 authorsRouter.delete(
   "/:authorId",
-  basicAuthMiddleware,
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
   adminOnlyMiddleware,
   async (req, res, next) => {
     try {
@@ -122,7 +152,8 @@ authorsRouter.delete(
 );
 authorsRouter.put(
   "/:authorId",
-  basicAuthMiddleware,
+  // basicAuthMiddleware,
+  JWTAuthMiddleware,
   adminOnlyMiddleware,
 
   async (req, res, next) => {
@@ -153,5 +184,24 @@ authorsRouter.put(
     }
   }
 );
+
+authorsRouter.post("/login", async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    const author = await authorsModel.checkCredentials(email, password);
+
+    if (author) {
+      const payload = { _id: author._id, role: author.role };
+      const accessToken = await createAccessToken(payload);
+
+      res.send({ accessToken });
+    } else {
+      next(createHttpError(401, "Credentials are not ok!"));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default authorsRouter;
