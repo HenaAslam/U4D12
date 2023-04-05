@@ -11,6 +11,7 @@ import authorsModel from "../authors/model.js";
 import Mongoose from "mongoose";
 import { ObjectId } from "mongoose";
 import { basicAuthMiddleware } from "../../lib/auth/basic.js";
+import { JWTAuthMiddleware } from "../../lib/auth/jwt.js";
 const blogsRouter = express.Router();
 
 blogsRouter.post(
@@ -29,11 +30,12 @@ blogsRouter.post(
     }
   }
 );
-blogsRouter.get("/", async (req, res, next) => {
+blogsRouter.get("/", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const mongoQuery = q2m(req.query);
     // console.log(mongoQuery);
     const blogs = await BlogsModel.find(
+      { author: req.user._id },
       mongoQuery.criteria,
       mongoQuery.options.fields
     )
@@ -49,7 +51,12 @@ blogsRouter.get("/", async (req, res, next) => {
         select: "name ",
       });
 
-    const total = await BlogsModel.countDocuments(mongoQuery.criteria);
+    const total = await BlogsModel.countDocuments(
+      // mongoQuery.criteria,
+      {
+        author: req.user._id,
+      }
+    );
 
     res.send({
       links: mongoQuery.links("http://localhost:3009/blogs", total),
@@ -122,29 +129,46 @@ blogsRouter.get("/:blogId", async (req, res, next) => {
     next(error);
   }
 });
-blogsRouter.delete("/:blogId", async (req, res, next) => {
+blogsRouter.delete("/:blogId", JWTAuthMiddleware, async (req, res, next) => {
   try {
-    const deletedBlog = await BlogsModel.findByIdAndDelete(req.params.blogId);
-    if (deletedBlog) {
-      res.status(204).send();
+    const blog = await BlogsModel.findById(req.params.blogId);
+
+    if (blog.author.includes(req.user._id)) {
+      const deletedBlog = await BlogsModel.findByIdAndDelete(req.params.blogId);
+      if (deletedBlog) {
+        res.status(204).send();
+      } else {
+        next(
+          createHttpError(404, `blog with id ${req.params.blogId} not found`)
+        );
+      }
     } else {
-      next(createHttpError(404, `blog with id ${req.params.blogId} not found`));
+      next(createHttpError(403, "unauthorized"));
     }
   } catch (error) {
     next(error);
   }
 });
-blogsRouter.put("/:blogId", async (req, res, next) => {
+blogsRouter.put("/:blogId", JWTAuthMiddleware, async (req, res, next) => {
   try {
-    const updatedBlog = await BlogsModel.findByIdAndUpdate(
-      req.params.blogId,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (updatedBlog) {
-      res.send(updatedBlog);
+    // const author=authorsModel.findById(req.user._id)
+    const blog = await BlogsModel.findById(req.params.blogId);
+    console.log(blog.author, req.user._id);
+    if (blog.author.includes(req.user._id)) {
+      const updatedBlog = await BlogsModel.findByIdAndUpdate(
+        req.params.blogId,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (updatedBlog) {
+        res.send(updatedBlog);
+      } else {
+        next(
+          createHttpError(404, `blog with id ${req.params.blogId} not found`)
+        );
+      }
     } else {
-      next(createHttpError(404, `blog with id ${req.params.blogId} not found`));
+      next(createHttpError(403, "unauthorized"));
     }
   } catch (error) {
     next(error);
