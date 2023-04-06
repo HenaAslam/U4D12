@@ -1,5 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
+import passport from "passport";
 import cors from "cors";
 import {
   badRequestHandler,
@@ -9,9 +10,12 @@ import {
   forbiddenErrorHandler,
 } from "./errorHandlers.js";
 import blogsRouter from "./api/blogs/index.js";
+import googleStrategy from "./lib/auth/googleOauth.js";
 import authorsRouter from "./api/authors/index.js";
 const server = express();
 const port = process.env.PORT;
+
+passport.use("google", googleStrategy);
 const whitelist = [process.env.FE_DEV_URL, process.env.FE_PROD_URL];
 server.use(
   cors({
@@ -30,6 +34,7 @@ server.use(
   })
 );
 server.use(express.json());
+server.use(passport.initialize());
 server.use("/blogs", blogsRouter);
 server.use("/authors", authorsRouter);
 server.use(badRequestHandler); //400
