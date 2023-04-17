@@ -16,7 +16,10 @@ const authorsRouter = express.Router();
 
 authorsRouter.get(
   "/googleLogin",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    prompt: "consent",
+  })
 );
 
 authorsRouter.get(
